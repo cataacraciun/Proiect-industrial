@@ -1,0 +1,183 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <title>Mini-ERP | Panou Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f0f2f5;
+            color: #333333;
+        }
+        .navbar-industrial {
+            background-color: #1e293b !important;
+        }
+        .card-header-industrial {
+            background-color: #2563eb !important;
+            color: white;
+            font-weight: 600;
+        }
+        .card-dark-industrial {
+            background-color: #334155 !important;
+            color: white;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- Meniu de navigare -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-industrial mb-4 shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">⚙️ Proiect Industrial</a>
+            <div class="navbar-nav ms-auto align-items-center">
+                <a class="nav-link" href="{% url 'dashboard' %}">Portal Dispecer</a>
+                <a class="nav-link text-info fw-bold active ms-3" href="{% url 'manager_dashboard' %}">Panou Manager</a>
+                <form action="{% url 'logout' %}" method="POST" class="d-inline ms-4">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-light btn-sm">Deconectare</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <h2 class="mb-4 text-secondary fw-bold">Panou Control Manager / Inginer Șef</h2>
+
+        {% if error_message %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Eroare:</strong> {{ error_message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
+
+        <!-- Secțiune: Control Utilaje -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header card-header-industrial">Monitorizare Echipamente și Erori (Mentenanță)</div>
+            <div class="card-body bg-white">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Cod / Utilaj</th>
+                            <th>Locație</th>
+                            <th>Status Curent</th>
+                            <th>Eroare / Detaliu Mentenanță</th>
+                            <th>Acțiune Manager</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for eq in equipments %}
+                        <tr>
+                            <td>
+                                <strong>{{ eq.code }}</strong><br>
+                                <small class="text-muted">{{ eq.name }}</small>
+                            </td>
+                            <td>{{ eq.location }}</td>
+                            <td>
+                                {% if eq.is_running %}
+                                    <span class="badge bg-success">Funcțional</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Oprit / Avarie</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if eq.is_running %}
+                                    <span class="text-muted">- Fără erori -</span>
+                                {% else %}
+                                    <span class="text-danger fw-semibold">{{ eq.error_message|default:"Mentenanță programată" }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form method="POST" class="d-flex gap-2 align-items-center">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="equipment_id" value="{{ eq.id }}">
+                                    {% if eq.is_running %}
+                                        <input type="text" name="error_message" placeholder="Cod eroare / Motiv..." class="form-control form-control-sm" required>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger text-nowrap">Oprește</button>
+                                    {% else %}
+                                        <button type="submit" class="btn btn-sm btn-outline-success w-100">Repornește</button>
+                                    {% endif %}
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">Nu există utilaje înregistrate.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header card-dark-industrial">📊 Raport Analitic de Stocuri</div>
+            <div class="card-body bg-white text-center">
+                <p class="text-muted">Acest grafic este generat automat pe baza datelor din baza de date a fabricii.</p>
+                <!-- Afișarea imaginii generate de MATLAB -->
+                <img src="{% static 'images/matlab_stock_report.png' %}" alt="Raport Stocuri" class="img-fluid rounded border shadow-sm" style="max-height: 400px;">
+            </div>
+        </div>
+        <!-- Secțiune: Gestionare Cereri -->
+        <div class="card shadow-sm border-0">
+            <div class="card-header card-dark-industrial">Gestionare Cereri Materiale (Requisitions)</div>
+            <div class="card-body bg-white">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#ID</th>
+                            <th>Material</th>
+                            <th>Departament</th>
+                            <th>Utilaj Vizat</th>
+                            <th>Cantitate</th>
+                            <th>Status</th>
+                            <th>Acțiuni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in requisitions %}
+                        <tr>
+                            <td>{{ r.id }}</td>
+                            <td>{{ r.material.name }} (<code>{{ r.material.code }}</code>)</td>
+                            <td>{{ r.department.name }}</td>
+                            <td>
+                                {% if r.equipment %}
+                                    <span class="badge bg-secondary">{{ r.equipment.code }}</span>
+                                {% else %}
+                                    <span class="text-muted">Nespecificat</span>
+                                {% endif %}
+                            </td>
+                            <td><strong>{{ r.quantity_requested }}</strong></td>
+                            <td>
+                                {% if r.status == 'PENDING' %}
+                                    <span class="badge bg-warning text-dark">În așteptare</span>
+                                {% elif r.status == 'APPROVED' %}
+                                    <span class="badge bg-success">Aprobată</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Respinsă</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if r.status == 'PENDING' %}
+                                <form method="POST" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="requisition_id" value="{{ r.id }}">
+                                    <button type="submit" name="action" value="approve" class="btn btn-sm btn-success">Aprobă</button>
+                                    <button type="submit" name="action" value="reject" class="btn btn-sm btn-danger">Respinge</button>
+                                </form>
+                                {% else %}
+                                    <span class="text-muted">Procesată</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">Nu există cereri înregistrate.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

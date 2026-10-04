@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <title>Mini-ERP | Portal Dispecer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f0f2f5;
+            color: #333333;
+        }
+        .navbar-industrial {
+            background-color: #1e293b !important; /* Gri-albăstrui închis, profesional */
+        }
+        .card-header-industrial {
+            background-color: #2563eb !important; /* Albastru vibrant industrial */
+            color: white;
+            font-weight: 600;
+        }
+        .card-dark-industrial {
+            background-color: #334155 !important;
+            color: white;
+            font-weight: 600;
+        }
+        .btn-industrial {
+            background-color: #2563eb;
+            color: white;
+        }
+        .btn-industrial:hover {
+            background-color: #1d4ed8;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Meniu de navigare -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-industrial mb-4 shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">⚙️ Proiect Industrial</a>
+            <div class="navbar-nav ms-auto align-items-center">
+                <a class="nav-link active" href="{% url 'dashboard' %}">Portal Dispecer</a>
+                <a class="nav-link text-info fw-semibold ms-3" href="{% url 'manager_dashboard' %}">Panou Manager</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <h2 class="mb-4 text-secondary fw-bold">Management Stocuri și Cereri</h2>
+
+        <div class="row">
+            <!-- Stoc Curent Materiale -->
+            <div class="col-md-7">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header card-dark-industrial">Stoc Curent Materiale (Inventar)</div>
+                    <div class="card-body bg-white">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Cod</th>
+                                    <th>Denumire</th>
+                                    <th>Stoc</th>
+                                    <th>Prag</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for m in materials %}
+                                <tr>
+                                    <td><code>{{ m.code }}</code></td>
+                                    <td>{{ m.name }}</td>
+                                    <td><strong>{{ m.stock_quantity }}</strong></td>
+                                    <td><span class="text-muted">{{ m.minimum_limit }}</span></td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">Nu există materiale în inventar.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formular Plasare Cerere -->
+            <div class="col-md-5">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header card-header-industrial">Plasează o Cerere (Requisition)</div>
+                    <div class="card-body bg-white">
+                        <form method="POST">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-secondary">Material:</label>
+                                <select name="material" class="form-select" required>
+                                    <option value="">-- Alege materialul --</option>
+                                    {% for m in materials %}
+                                        <option value="{{ m.id }}">{{ m.code }} - {{ m.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-secondary">Utilaj / Echipament (Intervenție):</label>
+                                <select name="equipment" class="form-select">
+                                    <option value="">-- Alege utilajul (opțional) --</option>
+                                    {% for eq in equipments %}
+                                        <option value="{{ eq.id }}">{{ eq.code }} - {{ eq.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-secondary">Departament:</label>
+                                <select name="department" class="form-select" required>
+                                    <option value="">-- Alege departamentul --</option>
+                                    {% for d in departments %}
+                                        <option value="{{ d.id }}">{{ d.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold text-secondary">Cantitate Cerută:</label>
+                                <input type="number" name="quantity" class="form-control" min="1" required>
+                            </div>
+
+                            <button type="submit" class="btn btn-industrial w-100 fw-semibold">Trimite Cererea</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Istoric Cereri -->
+        <div class="card shadow-sm border-0">
+            <div class="card-header card-dark-industrial">Istoric Cereri Materiale</div>
+            <div class="card-body bg-white">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#ID</th>
+                            <th>Material</th>
+                            <th>Departament</th>
+                            <th>Utilaj</th>
+                            <th>Cantitate</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in requisitions %}
+                        <tr>
+                            <td>{{ r.id }}</td>
+                            <td>{{ r.material.name }}</td>
+                            <td>{{ r.department.name }}</td>
+                            <td>
+                                {% if r.equipment %}
+                                    <span class="badge bg-secondary">{{ r.equipment.code }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td><strong>{{ r.quantity_requested }}</strong></td>
+                            <td>
+                                {% if r.status == 'PENDING' %}
+                                    <span class="badge bg-warning text-dark">În așteptare</span>
+                                {% elif r.status == 'APPROVED' %}
+                                    <span class="badge bg-success">Aprobată</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Respinsă</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">Nu există cereri înregistrate.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
